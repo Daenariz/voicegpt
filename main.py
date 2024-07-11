@@ -7,13 +7,15 @@ from dotenv import load_dotenv
 # OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 # from openai import OpenAI
 
-openai.api_key = "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"
+openai.api_key = "sk-proj-YXubfTcn0IH1I6LLP9ETT3BlbkFJwroouuB5PdM9rIb4XD7I"
+engine = pyttsx3.init('sapi5')
+voices = engine.getProperty('voices')
+engine.setProperty('voice', voices[0].id) #2 for japanese if installed
+engine.setProperty('rate', 230)
+
+
 
 def speakText(command):
-    engine = pyttsx3.init('sapi5')
-    voices = engine.getProperty('voices')
-    engine.setProperty('voice', voices[0].id)
-    engine.setProperty('rate', 230)
     engine.say(command)
     engine.runAndWait()
 
@@ -32,7 +34,7 @@ def record_text():
 
                 audio2 = r.listen(source2)
 
-                MyText = r.recognize_google(audio2, language="de")
+                MyText = r.recognize_google(audio2, language="de") #de for german, ja-JP for japanese
                # print(MyText)
 
                 return MyText
@@ -59,22 +61,31 @@ def send_to_chatGPT(messages, model="gpt-3.5-turbo"):
     messages.append(response.choices[0].message)
     return message
 
+role_str = "Du bist mein persönlicher AI Assitent, der mir bei meinem Studium hilft und mich bei allen Fragen rund um die Elektrotechnik unterstützt."
+messages = [{"role": "user", "content":  ""}]
 
-messages = [{"role": "user", "content": "Du bist mein persönlicher AI Assitent, der mir bei meinem Studium hilft und mich bei allen Fragen rund um die Elektrotechnik unterstützt."}]
-while True:
-    wake_word = record_text()
-    print(wake_word)
-    if(wake_word == "hey Momo"):
-        while True:
-            print("--> entered if case")
+def main():
+    speakText("Starte Main einen Moment")
+    wake_words = {"こんにちは","hey momo", "hallo", "guten tag", "hi", "momo"} #wake words array for entering the loop
+    idle_words = {"danke", "das war's schon", "das wars", "vielen dank", "ist schon gut"}
+    while True:
+        wake_word = record_text().lower()
+        print(wake_word)
+        if wake_word in wake_words:
             speakText("Was kann ich für dich tun?")
-            text2gpt = record_text()
-            print(text2gpt)
-            messages.append({"role": "user", "content": text2gpt})
-            response = send_to_chatGPT(messages)
-            speakText(response)
-            print(response)
-            if (text2gpt == "danke"):
-                print("<-- quiting if case")
-                break
-    print("state : outside if statement")
+            while True:
+                print("--> entered if case")
+                text2gpt = record_text()
+                print(text2gpt)
+                messages.append({"role": "user", "content": text2gpt})
+                response = send_to_chatGPT(messages)
+                speakText(response)
+                print(response)
+                #speakText("Gibt es noch etwas?")
+                if text2gpt in idle_words:
+                    print("<-- quiting if case")
+                    break
+        print("state : outside if statement")
+
+if __name__ == "__main__":
+    main()
