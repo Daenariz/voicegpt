@@ -1,6 +1,7 @@
 import speech_recognition as sr
 import pyttsx3
 import openai
+import random
 import os
 from dotenv import load_dotenv
 #load_dotenv()
@@ -29,11 +30,8 @@ def record_text():
             with sr.Microphone() as source2:
                 r.adjust_for_ambient_noise(source2, duration=0.5)
                 r.dynamic_energy_threshold = True
-
                 print("I'm listening")
-
                 audio2 = r.listen(source2)
-
                 MyText = r.recognize_google(audio2, language="de") #de for german, ja-JP for japanese
                # print(MyText)
 
@@ -51,7 +49,7 @@ def send_to_chatGPT(messages, model="gpt-3.5-turbo"):
     response = openai.ChatCompletion.create(
         model=model,
         messages=messages,
-        max_tokens=2048,
+        max_tokens=256,
         n=1,
         stop=None,
         temperature=0.5,
@@ -61,31 +59,36 @@ def send_to_chatGPT(messages, model="gpt-3.5-turbo"):
     messages.append(response.choices[0].message)
     return message
 
+def gpt_loop(welcome=None):
+    idle_words = {"danke", "das war's schon", "das war's", "vielen dank", "ist schon gut"}
+    welcome_phrases = {"Willkommen zurück", "Was kann ich für dich tun?", "Ja mein Gebieter","Wie kann ich dienen", "Master?"}
+    welcome = random.sample(welcome_phrases,1)
+    speakText(welcome)
+    while True:
+        print("--> entered if case")
+        text2gpt = record_text().lower()
+        print("User:" + text2gpt)
+        messages.append({"role": "user", "content": text2gpt})
+        response = send_to_chatGPT(messages)
+        speakText(response)
+        print("MOMO:" + response)
+        # speakText("Gibt es noch etwas?")
+        if text2gpt in idle_words:
+            print("<-- quiting if case")
+            break
+
 role_str = "Du bist mein persönlicher AI Assitent, der mir bei meinem Studium hilft und mich bei allen Fragen rund um die Elektrotechnik unterstützt."
 messages = [{"role": "user", "content":  ""}]
 
 def main():
     speakText("Starte Main einen Moment")
     wake_words = {"こんにちは","hey momo", "hallo", "guten tag", "hi", "momo"} #wake words array for entering the loop
-    idle_words = {"danke", "das war's schon", "das wars", "vielen dank", "ist schon gut"}
     while True:
         wake_word = record_text().lower()
         print(wake_word)
         if wake_word in wake_words:
-            speakText("Was kann ich für dich tun?")
-            while True:
-                print("--> entered if case")
-                text2gpt = record_text()
-                print(text2gpt)
-                messages.append({"role": "user", "content": text2gpt})
-                response = send_to_chatGPT(messages)
-                speakText(response)
-                print(response)
-                #speakText("Gibt es noch etwas?")
-                if text2gpt in idle_words:
-                    print("<-- quiting if case")
-                    break
-        print("state : outside if statement")
+            gpt_loop()
+            print("state : outside if statement")
 
 if __name__ == "__main__":
     main()
