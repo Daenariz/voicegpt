@@ -2,6 +2,11 @@ import speech_recognition as sr
 import pyttsx3
 import openai
 import random
+
+import tts_test
+from tts_test import text_to_speech
+
+
 import os
 from dotenv import load_dotenv
 #load_dotenv()
@@ -13,13 +18,17 @@ engine = pyttsx3.init('sapi5')
 voices = engine.getProperty('voices')
 engine.setProperty('voice', voices[0].id) #2 for japanese if installed
 engine.setProperty('rate', 230)
-
-
+tts_test.init_tts_model()
 
 def speakText(command):
-    engine.say(command)
-    engine.runAndWait()
-
+    switch_tts = False
+    if switch_tts:
+        engine.say(command)
+        engine.runAndWait()
+    else:
+        if not isinstance(command, str):
+            print(f"Error: Expected a string but got {type(command)}")
+        text_to_speech(command)
 
 r = sr.Recognizer()
 
@@ -61,8 +70,8 @@ def send_to_chatGPT(messages, model="gpt-3.5-turbo"):
 
 def gpt_loop(welcome=None):
     idle_words = {"danke", "das war's schon", "das war's", "vielen dank", "ist schon gut"}
-    welcome_phrases = {"Willkommen zurück", "Was kann ich für dich tun?", "Ja mein Gebieter","Wie kann ich dienen", "Master?"}
-    welcome = random.sample(welcome_phrases,1)
+    welcome_phrases = {"Willkommen zurück", "Was kann ich für dich tun?", "Ja mein Gebieter","Wie kann ich dienen", "Ja Master?"}
+    welcome = random.choice(list(welcome_phrases))
     speakText(welcome)
     while True:
         print("--> entered if case")
@@ -91,4 +100,5 @@ def main():
             print("state : outside if statement")
 
 if __name__ == "__main__":
+    tts_test.init_tts_model()
     main()
