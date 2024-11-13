@@ -46,7 +46,7 @@ def record_text():
             print("Unknown error occurred")
 
 
-def send_to_chatGPT(messages, model="gpt-3.5-turbo"):
+def send_to_chatGPT(messages, model="gpt-4o-mini"):
 
     response = openai.ChatCompletion.create(
         model=model,
