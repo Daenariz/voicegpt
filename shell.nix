@@ -1,22 +1,23 @@
-# shell.nix
 { pkgs ? import <nixpkgs> {} }:
 
 pkgs.mkShell {
-  # Die Python-Umgebung und benötigten Pakete hinzufügen
   buildInputs = [
-    pkgs.python310          # Installiert Python 3.10
-    pkgs.python310Packages.pip # Installiert pip für Python 3.10
-    pkgs.python310Packages.pyttsx3  # Installiert pyttsx3
-    pkgs.python310Packages.pyaudio  # Installiert PyAudio
-    pkgs.python310Packages.speechrecognition # Installiert SpeechRecognition
-    pkgs.python310Packages.python-dotenv  # Installiert python-dotenv
+    pkgs.python310
+    pkgs.python310Packages.pip
+    pkgs.python310Packages.virtualenv
+    pkgs.portaudio
   ];
 
-  # Optional: Shell-Umgebungsvariablen oder benutzerdefinierte Konfiguration
   shellHook = ''
-    # Zum Beispiel: Setze PYTHONPATH auf den richtigen Pfad
-    pip install openai == 0.28
-    export PYTHONPATH=${pkgs.python310Packages.pyttsx3}:${pkgs.python310Packages.pyaudio}:${pkgs.python310Packages.speechrecognition}:${pkgs.python310Packages.python-dotenv}
+    # Erstelle eine virtuelle Umgebung, wenn sie noch nicht existiert
+    if [ ! -d "venv" ]; then
+      python3 -m venv venv
+    fi
+    # Aktiviere die virtuelle Umgebung
+    source venv/bin/activate
+    # Installiere die Pakete in der virtuellen Umgebung
+    pip install --upgrade pip
+    pip install wheel openai==0.28 pyttsx3 PyAudio SpeechRecognition python-dotenv
   '';
 }
 
