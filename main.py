@@ -2,16 +2,23 @@ import speech_recognition as sr
 import pyttsx3
 import openai
 import random
-import os
+
 from dotenv import load_dotenv
-#load_dotenv()
-# OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
+import os
+
+load_dotenv()
+api_key = os.getenv('API_KEY')
 # from openai import OpenAI
 
-openai.api_key = "sk-proj-YXubfTcn0IH1I6LLP9ETT3BlbkFJwroouuB5PdM9rIb4XD7I"
-engine = pyttsx3.init('sapi5')
+openai.api_key = api_key
+engine = pyttsx3.init()
 voices = engine.getProperty('voices')
-engine.setProperty('voice', voices[0].id) #2 for japanese if installed
+
+for voice in voices:
+    if 'de' in voice.languages[0]:  # Überprüfe, ob 'de' (für Deutsch) in der Sprache enthalten ist
+        engine.setProperty('voice', voice.id)
+        break
+###engine.setProperty('voice', voices[1].id) #2 for japanese if installed
 engine.setProperty('rate', 230)
 
 
@@ -44,7 +51,7 @@ def record_text():
             print("Unknown error occurred")
 
 
-def send_to_chatGPT(messages, model="gpt-3.5-turbo"):
+def send_to_chatGPT(messages, model="gpt-4o-mini"):
 
     response = openai.ChatCompletion.create(
         model=model,
