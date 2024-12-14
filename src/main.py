@@ -63,7 +63,7 @@ def send_to_chatGPT(messages, model="gpt-4o-mini"):
 
 def gpt_loop(welcome=None):
     idle_words = {"danke", "das war's schon", "das war's", "vielen dank", "ist schon gut"}
-    welcome_phrases = {"Willkommen zurück", "Was kann ich für dich tun?", "Ja mein Gebieter","Wie kann ich dienen", "Master?"}
+    welcome_phrases = #{"Willkommen zurück", "Was kann ich für dich tun?", "Ja mein Gebieter","Wie kann ich dienen", "Master?"}
     welcome = random.sample(welcome_phrases,1)
     speakText(welcome)
     while True:
