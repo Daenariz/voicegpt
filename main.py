@@ -11,7 +11,7 @@ api_key = os.getenv('API_KEY')
 # from openai import OpenAI
 
 openai.api_key = api_key
-engine = pyttsx3.init('sapi5')
+engine = pyttsx3.init()
 voices = engine.getProperty('voices')
 engine.setProperty('voice', voices[0].id) #2 for japanese if installed
 engine.setProperty('rate', 230)
