@@ -24,4 +24,8 @@ API_KEY=<YOUR-API-KEY>
 ```
 
 In case you name it differently, do not forget to add it to the .gitignore file, since your key would be publicly visible otherwise.
+
+The codebase was originally developed on Windows 10. There's already a [debian branch](https://github.com/Daenariz/voicegpt/tree/feature/debian) which will be worked on in the future.
+
+
 Python Poetry coming soon..
