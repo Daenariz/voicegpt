@@ -8,17 +8,40 @@ from tts_test import text_to_speech
 
 
 import os
-from dotenv import load_dotenv
-#load_dotenv()
-# OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
-# from openai import OpenAI
 
-openai.api_key = "sk-proj-YXubfTcn0IH1I6LLP9ETT3BlbkFJwroouuB5PdM9rIb4XD7I"
-engine = pyttsx3.init('sapi5')
+from dotenv import load_dotenv
+import os
+from src.utils import load_phrases, check_phrase
+
+# Pfade zu den Textdateien
+language = 'de'
+wake_words_path = os.path.join('..', 'data', language, 'wake_words.txt')
+welcome_phrases_path = os.path.join('..', 'data', language, 'welcome_phrases.txt')
+idle_words_path = os.path.join('..', 'data', language, 'idle_words.txt')
+
+# For loading your api-key
+load_dotenv()
+api_key = os.getenv('API_KEY')
+openai.api_key = api_key
+
+
+# Zuordnung zwischen Sprachcodes und Stimmen-IDs
+voice_mapping = {
+    'de': 'HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Speech\\Voices\\Tokens\\TTS_MS_DE-DE_HEDDA_11.0',
+    'en': 'HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Speech\\Voices\\Tokens\\TTS_MS_EN-US_DAVID_11.0',
+    'ja': 'HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Speech\\Voices\\Tokens\\TTS_MS_JA-JP_HARUKA_11.0'
+}
+
+
+
+engine = pyttsx3.init()
 voices = engine.getProperty('voices')
-engine.setProperty('voice', voices[0].id) #2 for japanese if installed
+#engine.setProperty('voice', voices[0].id)   #TODO: find a solution
+engine.setProperty('voice', voice_mapping[language])
 engine.setProperty('rate', 230)
+
 tts_test.init_tts_model()
+
 
 def speakText(command):
     switch_tts = False
@@ -41,10 +64,10 @@ def record_text():
                 r.dynamic_energy_threshold = True
                 print("I'm listening")
                 audio2 = r.listen(source2)
-                MyText = r.recognize_google(audio2, language="de") #de for german, ja-JP for japanese
-               # print(MyText)
+                mytext = r.recognize_google(audio2, language=language)   #de for german, ja-JP for japanese
+               # print(mytext)
 
-                return MyText
+                return mytext
 
         except sr.RequestError as e:
             print("Could not request results; {0}".format(e))
@@ -53,7 +76,8 @@ def record_text():
             print("Unknown error occurred")
 
 
-def send_to_chatGPT(messages, model="gpt-3.5-turbo"):
+# See prices for desired model here: https://openai.com/api/pricing/
+def send_to_chatGPT(messages, model="gpt-4o-mini"):
 
     response = openai.ChatCompletion.create(
         model=model,
@@ -69,19 +93,18 @@ def send_to_chatGPT(messages, model="gpt-3.5-turbo"):
     return message
 
 def gpt_loop(welcome=None):
-    idle_words = {"danke", "das war's schon", "das war's", "vielen dank", "ist schon gut"}
-    welcome_phrases = {"Willkommen zurück", "Was kann ich für dich tun?", "Ja mein Gebieter","Wie kann ich dienen", "Ja Master?"}
-    welcome = random.choice(list(welcome_phrases))
+    idle_words = load_phrases(idle_words_path)
+    welcome_phrases = load_phrases(welcome_phrases_path)
+    welcome = random.sample(welcome_phrases,1)
     speakText(welcome)
     while True:
-        print("--> entered if case")
+        print("   --> entered if case")
         text2gpt = record_text().lower()
-        print("User:" + text2gpt)
+        print("   User:" + text2gpt)
         messages.append({"role": "user", "content": text2gpt})
         response = send_to_chatGPT(messages)
         speakText(response)
-        print("MOMO:" + response)
-        # speakText("Gibt es noch etwas?")
+        print("   MOMO:" + response)
         if text2gpt in idle_words:
             print("<-- quiting if case")
             break
@@ -91,7 +114,7 @@ messages = [{"role": "user", "content":  ""}]
 
 def main():
     speakText("Starte Main einen Moment")
-    wake_words = {"こんにちは","hey momo", "hallo", "guten tag", "hi", "momo"} #wake words array for entering the loop
+    wake_words = load_phrases(wake_words_path)
     while True:
         wake_word = record_text().lower()
         print(wake_word)
