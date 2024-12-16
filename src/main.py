@@ -7,7 +7,13 @@ from dotenv import load_dotenv
 import os
 from utils import load_phrases, check_phrase
 
-# paths to text files
+
+
+# adjust the file path to be relative to the main.py file 
+script_dir = os.path.dirname(os.path.abspath(__file__))
+os.chdir(script_dir) 
+
+# file paths for language switching
 data_dir = '../data'
 language = 'en'   # use de for german, en for english and ja for japanese
 wake_words_path = os.path.join(data_dir, language, 'wake_words.txt')
