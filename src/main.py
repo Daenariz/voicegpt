@@ -5,13 +5,14 @@ import random
 
 from dotenv import load_dotenv
 import os
-from src.utils import load_phrases, check_phrase
+from utils import load_phrases, check_phrase
 
 # Pfade zu den Textdateien
+data_dir = '../data'
 language = 'de'
-wake_words_path = os.path.join('..', 'data', language, 'wake_words.txt')
-welcome_phrases_path = os.path.join('..', 'data', language, 'welcome_phrases.txt')
-idle_words_path = os.path.join('..', 'data', language, 'idle_words.txt')
+wake_words_path = os.path.join(data_dir, language, 'wake_words.txt')
+welcome_phrases_path = os.path.join(data_dir, language, 'welcome_phrases.txt')
+idle_words_path = os.path.join(data_dir, language, 'idle_words.txt')
 
 # For loading your api-key
 load_dotenv()
@@ -30,7 +31,6 @@ voice_mapping = {
 
 engine = pyttsx3.init()
 voices = engine.getProperty('voices')
-#engine.setProperty('voice', voices[0].id)   #TODO: find a solution
 engine.setProperty('voice', voice_mapping[language])
 engine.setProperty('rate', 230)
 
