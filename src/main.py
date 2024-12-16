@@ -7,21 +7,22 @@ from dotenv import load_dotenv
 import os
 from utils import load_phrases, check_phrase
 
-# Pfade zu den Textdateien
+# paths to text files
 data_dir = '../data'
-language = 'de'
+language = 'en'   # use de for german, en for english and ja for japanese
 wake_words_path = os.path.join(data_dir, language, 'wake_words.txt')
 welcome_phrases_path = os.path.join(data_dir, language, 'welcome_phrases.txt')
 idle_words_path = os.path.join(data_dir, language, 'idle_words.txt')
 
-# For loading your api-key
+# for loading your api-key
 load_dotenv()
 api_key = os.getenv('API_KEY')
 openai.api_key = api_key
 
 
-# Zuordnung zwischen Sprachcodes und Stimmen-IDs
+# reference between language and local modells stored
 voice_mapping = {
+# certain microsoft model #TODO: better management for models of different os
     'de': 'HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Speech\\Voices\\Tokens\\TTS_MS_DE-DE_HEDDA_11.0',
     'en': 'HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Speech\\Voices\\Tokens\\TTS_MS_EN-US_DAVID_11.0',
     'ja': 'HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Speech\\Voices\\Tokens\\TTS_MS_JA-JP_HARUKA_11.0'
@@ -63,7 +64,7 @@ def record_text():
             print("Unknown error occurred")
 
 
-# See prices for desired model here: https://openai.com/api/pricing/
+# see prices for desired model here: https://openai.com/api/pricing/
 def send_to_chatGPT(messages, model="gpt-4o-mini"):
 
     response = openai.ChatCompletion.create(
