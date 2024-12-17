@@ -1,5 +1,5 @@
 {
-  description = "Application packaged using poetry2nix";
+  description = "VoiceGPT: A voice assistant using OpenAI";
 
   inputs = {
     flake-utils.url = "github:numtide/flake-utils";
@@ -11,60 +11,80 @@
     };
   };
 
-  outputs = { self, nixpkgs, flake-utils, poetry2nix }:
-    flake-utils.lib.eachDefaultSystem (system:
+  outputs =
+    {
+      self,
+      nixpkgs,
+      flake-utils,
+      poetry2nix,
+    }:
+    flake-utils.lib.eachDefaultSystem (
+      system:
       let
-        # Importiere nixpkgs einmal und verwende es für alle Abhängigkeiten
-        pkgs = import nixpkgs { inherit system; };
-
-        # Poetry2Nix Anwendung erstellen
-        myapp = poetry2nix.mkPoetryApplication {
-          projectDir = self;
-          overrides = poetry2nix.overrides.withDefaults (final: super:
-            super // {
-              # Optional: nativeBuildInputs oder andere Customizations
-            }
-          );
+        pkgs = import nixpkgs {
+          inherit system;
+          overlays = [
+            poetry2nix.overlays.default
+            (final: _: {
+              voicegpt = final.callPackage voicegpt { };
+            })
+          ];
         };
 
+        voicegpt =
+          { poetry2nix, lib }:
+          poetry2nix.mkPoetryApplication {
+            projectDir = self;
+
+            overrides = poetry2nix.overrides.withDefaults (
+              final: super:
+              super
+              // {
+                # None of the below add the missing portaudio.h. Maybe we need to add it to pyaudio's build environment?
+                nativeBuildInputs = [ pkgs.portaudio ];
+                buildInputs = [ pkgs.portaudio ];
+                environment = ''
+                  export CFLAGS="-I${pkgs.portaudio}/include $CFLAGS"
+                  export C_INCLUDE_PATH=${pkgs.portaudio}/include:$C_INCLUDE_PATH
+                '';
+                CFLAGS = "-I${pkgs.portaudio}/include";
+                C_INCLUDE_PATH = "${pkgs.portaudio}/include";
+              }
+            );
+          };
       in
       {
-        # Paket für das Standard-Projekt
-        packages.default = pkgs.mkPoetryApplication {
-          projectDir = self;
-        };
+        packages.default = pkgs.voicegpt; # FIXME: "portaudio.h: No such file or directory"
 
         devShells = {
-          # Shell für die Anwendung und Abhängigkeiten (inkl. Poetry, PortAudio, espeak)
           default = pkgs.mkShell {
-            buildInputs = [
-              pkgs.poetry          # Poetry für das Projekt
-              pkgs.portaudio       # PortAudio, falls benötigt
-              pkgs.espeak          # espeak als Abhängigkeit
-              pkgs.python310       # Python 3.10, falls du es explizit brauchst
-              pkgs.python310Packages.pyaudio
-              pkgs.python310Packages.speechrecognition
-              pkgs.python310Packages.python-dotenv
-              pkgs.python310Packages.pyttsx3
-              pkgs.python310Packages.openai
+            # inputsFrom = [ pkgs.voicegpt ]; # This is what we actually want
+
+            # Yet, we have to do this since the voicegpt package does not build:
+            buildInputs = with pkgs; [
+              alsa-utils
+              espeak
+              portaudio
+              python312
+              python312Packages.openai
+              python312Packages.pyaudio
+              python312Packages.python-dotenv
+              python312Packages.pyttsx3
+              python312Packages.speechrecognition
             ];
             shellHook = ''
-            export PATH="${pkgs.espeak}/bin:$PATH" 
-'';
+              export PATH="${pkgs.espeak}/bin:$PATH"
+              export LD_LIBRARY_PATH="${pkgs.espeak}/lib:$LD_LIBRARY_PATH"
+              export ESPEAK_DATA_PATH="${pkgs.espeak}/share/espeak-ng-data"
+            '';
           };
 
-          # Separate Shell für Poetry
           poetry = pkgs.mkShell {
-            packages = [pkgs.python310Packages.pip pkgs.poetry pkgs.portaudio pkgs.espeak pkgs.python310 ];  # Nur Poetry für die pyproject.toml-Verwaltung
-            shellHook = ''
-            export PATH="${pkgs.espeak}/bin:$PATH" 
-'';
+            packages = [ pkgs.poetry ];
           };
         };
 
-        # Legacy-Pakete (falls nötig für andere Umgebungen)
         legacyPackages = pkgs;
       }
     );
 }
-
