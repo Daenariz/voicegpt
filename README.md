@@ -1,3 +1,31 @@
+## Directory Structure
+
+```
+.
+├── data
+│   ├── de
+│   │   ├── idle_words.txt
+│   │   ├── wake_words.txt
+│   │   └── welcome_phrases.txt
+│   ├── en
+│   │   ├── idle_words.txt
+│   │   ├── wake_words.txt
+│   │   └── welcome_phrases.txt
+│   └── ja
+│       ├── idle_words.txt
+│       ├── wake_words.txt
+│       └── welcome_phrases.txt
+├── poetry.lock
+├── pyproject.toml
+├── README.md
+├── requirements.txt
+└── src
+    ├── main.py
+    ├── __pycache__
+    │   └── utils.cpython-310.pyc
+    └── utils.py
+```
+
 Those are the pip commands I used:
 
 ```
@@ -29,11 +57,11 @@ The codebase was originally developed on Windows 10. There's already a [debian b
 
 ```
 python
->>> import pyttsx3
->>> engine = pyttsx3.init()
->>> voices = engine.getProperty('voices')
->>> for voice in voices:
-...     print(f"Name: {voice.name}, ID: {voice.id}, Language: {voice.languages}, Gender: {voice.gender}")
+import pyttsx3
+engine = pyttsx3.init()
+voices = engine.getProperty('voices')
+for voice in voices:
+print(f"Name: {voice.name}, ID: {voice.id}, Language: {voice.languages}, Gender: {voice.gender}")
 ```
 
 set your voice_mapping in the main.py according to the ID:<path/to/voicemodel>
