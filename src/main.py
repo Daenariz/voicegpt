@@ -1,120 +1,100 @@
+import os
+from dotenv import load_dotenv
+import openai
 import speech_recognition as sr
 import pyttsx3
-import openai
-import random
+from commands import get_language_change_commands
+from set_voice import set_voice
 
-from dotenv import load_dotenv
-import os
-from utils import load_phrases, check_phrase
-
-
-
-# adjust the file path to be relative to the main.py file 
-script_dir = os.path.dirname(os.path.abspath(__file__))
-os.chdir(script_dir) 
-
-# file paths for language switching
-data_dir = '../data'
-language = 'en'   # use de for german, en for english and ja for japanese
-wake_words_path = os.path.join(data_dir, language, 'wake_words.txt')
-welcome_phrases_path = os.path.join(data_dir, language, 'welcome_phrases.txt')
-idle_words_path = os.path.join(data_dir, language, 'idle_words.txt')
-
-# for loading your api-key
 load_dotenv()
 api_key = os.getenv('API_KEY')
+if api_key is None:
+    print("API_KEYが環境変数から取得できませんでした。設定を確認してください。")
+    exit(1)  # Terminate the program if you don't have the API key
+
 openai.api_key = api_key
 
-
-# reference between language and local modells stored
-voice_mapping = {
-# certain microsoft model #TODO: better management for models of different os
-    'de': 'HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Speech\\Voices\\Tokens\\TTS_MS_DE-DE_HEDDA_11.0',
-    'en': 'HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Speech\\Voices\\Tokens\\TTS_MS_EN-US_DAVID_11.0',
-    'ja': 'HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Speech\\Voices\\Tokens\\TTS_MS_JA-JP_HARUKA_11.0'
+LANGUAGES = {
+    'Japanese': 'ja',  
+    'English': 'en',   
+    'German': 'de',    
 }
 
-
-
 engine = pyttsx3.init()
-voices = engine.getProperty('voices')
-engine.setProperty('voice', voice_mapping[language])
-engine.setProperty('rate', 230)
 
+def get_voice_input(language):
+    recognizer = sr.Recognizer()
+    with sr.Microphone() as source:
+        print("Please talk...")
+        audio = recognizer.listen(source)
 
-def speakText(command):
-    engine.say(command)
-    engine.runAndWait()
+    try:
+        text = recognizer.recognize_google(audio, language=language)
+        print(f"You: {text}")
+        return text
+    except sr.UnknownValueError:
+        print("The voice could not be recognized. Please try again.")
+        return None
+    except sr.RequestError as e:
+        print(f"request error: {e}")
+        return None
 
+def get_gpt_response(prompt):
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-4o-mini",  # Model name to use
+            messages=[{"role": "user", "content": prompt}]
+        )
+        message = response.choices[0].message['content']
+        print(f"GPT: {message}")
+        return message
+    except Exception as e:
+        print(f"An error occurred while requesting to GPT: {e}")
+        return "An error has occurred."
 
-r = sr.Recognizer()
+def speak(text, language):
+    set_voice(engine, language)  # Apply audio settings
+    engine.say(text)
+    engine.runAndWait()  # Wait until speech synthesis is complete
 
-
-def record_text():
-    while True:
-        try:
-            with sr.Microphone() as source2:
-                r.adjust_for_ambient_noise(source2, duration=0.5)
-                r.dynamic_energy_threshold = True
-                print("I'm listening")
-                audio2 = r.listen(source2)
-                mytext = r.recognize_google(audio2, language=language)   #de for german, ja-JP for japanese
-               # print(mytext)
-
-                return mytext
-
-        except sr.RequestError as e:
-            print("Could not request results; {0}".format(e))
-
-        except sr.UnknownValueError:
-            print("Unknown error occurred")
-
-
-# see prices for desired model here: https://openai.com/api/pricing/
-def send_to_chatGPT(messages, model="gpt-4o-mini"):
-
-    response = openai.ChatCompletion.create(
-        model=model,
-        messages=messages,
-        max_tokens=256,
-        n=1,
-        stop=None,
-        temperature=0.5,
-    )
-
-    message = response.choices[0].message.content
-    messages.append(response.choices[0].message)
-    return message
-
-def gpt_loop(welcome=None):
-    idle_words = load_phrases(idle_words_path)
-    welcome_phrases = load_phrases(welcome_phrases_path)
-    welcome = random.sample(welcome_phrases,1)
-    speakText(welcome)
-    while True:
-        print("   --> entered if case")
-        text2gpt = record_text().lower()
-        print("   User:" + text2gpt)
-        messages.append({"role": "user", "content": text2gpt})
-        response = send_to_chatGPT(messages)
-        speakText(response)
-        print("   MOMO:" + response)
-        if text2gpt in idle_words:
-            print("<-- quiting if case")
-            break
-
-role_str = "Du bist mein persönlicher AI Assitent, der mir bei meinem Studium hilft und mich bei allen Fragen rund um die Elektrotechnik unterstützt."
-messages = [{"role": "user", "content":  ""}]
+def change_language(command):
+    commands = get_language_change_commands()  # get command
+    return commands.get(command.lower())
 
 def main():
-    speakText("Starte Main einen Moment")
-    wake_words = load_phrases(wake_words_path)
+    current_language = 'en' # Set initial language to english
+    wake_up_word = "wake up"  # set wake word
+    sleep_command = "sleep"  
+    
     while True:
-        wake_word = record_text().lower()
-        print(wake_word)
-        if wake_word in wake_words:
-            gpt_loop()
-            print("state : outside if statement")
+        print("ウェイクワードを待っています...") # wait for wake word
+        user_input = get_voice_input('en')  # Recognize wake word in English
+        
+        if user_input:
+            if wake_up_word in user_input.lower():
+                print(f"ウェイクワード '{wake_up_word}' が認識されました。")
+                speak("こんにちは、何をお手伝いできますか？", current_language)
+
+                # Switch to normal interaction mode
+                while True:
+                    user_input = get_voice_input(current_language)
+                    if user_input:
+                        # Check if sleep command is included
+                        if sleep_command in user_input.lower():
+                            print("スリープコマンドが認識されました。アプリケーションを終了します。")
+                            speak("お休みなさい。", current_language)
+                            break  # exit interactive mode and return to main loop
+
+                        # Check if language change command is included
+                        new_language = change_language(user_input)
+                        if new_language:
+                            current_language = new_language
+                            print(f"言語が変更されました: {new_language}")
+                            set_voice(engine, current_language)  # Set to new language voice
+                            continue  # Continue typing in new language
+
+                        response = get_gpt_response(user_input)
+                        speak(response, current_language)
 
 if __name__ == "__main__":
     main()
