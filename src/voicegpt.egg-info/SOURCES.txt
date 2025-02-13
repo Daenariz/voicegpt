@@ -1,0 +1,9 @@
+README.md
+pyproject.toml
+src/main.py
+src/utils.py
+src/voicegpt.egg-info/PKG-INFO
+src/voicegpt.egg-info/SOURCES.txt
+src/voicegpt.egg-info/dependency_links.txt
+src/voicegpt.egg-info/requires.txt
+src/voicegpt.egg-info/top_level.txt
