@@ -1,90 +1,68 @@
 {
-  description = "VoiceGPT: A voice assistant using OpenAI";
-
   inputs = {
-    flake-utils.url = "github:numtide/flake-utils";
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable-small";
-    poetry2nix = {
-      url = "github:nix-community/poetry2nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.flake-utils.follows = "flake-utils";
-    };
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
   };
 
   outputs =
+    { self, nixpkgs }:
+    let
+      supportedSystems = [
+        "x86_64-linux"
+      ];
+      forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
+    in
     {
-      self,
-      nixpkgs,
-      flake-utils,
-      poetry2nix,
-    }:
-    flake-utils.lib.eachDefaultSystem (
-      system:
-      let
-        pkgs = import nixpkgs {
-          inherit system;
-          overlays = [
-            poetry2nix.overlays.default
-            (final: _: {
-              voicegpt = final.callPackage voicegpt { };
-            })
-          ];
-        };
-
-        voicegpt =
-          { poetry2nix, lib }:
-          poetry2nix.mkPoetryApplication {
-            projectDir = self;
-
-            overrides = poetry2nix.overrides.withDefaults (
-              final: super:
-              super
-              // {
-                # None of the below add the missing portaudio.h. Maybe we need to add it to pyaudio's build environment?
-                nativeBuildInputs = [ pkgs.portaudio ];
-                buildInputs = [ pkgs.portaudio ];
-                environment = ''
-                  export CFLAGS="-I${pkgs.portaudio}/include $CFLAGS"
-                  export C_INCLUDE_PATH=${pkgs.portaudio}/include:$C_INCLUDE_PATH
-                '';
-                CFLAGS = "-I${pkgs.portaudio}/include";
-                C_INCLUDE_PATH = "${pkgs.portaudio}/include";
-              }
-            );
+      apps = forAllSystems (
+        system:
+        let
+          pkg = self.outputs.packages.${system}.default;
+        in
+        {
+          default = {
+            type = "app";
+            program = "${pkg}/bin/${pkg.pname}";
           };
-      in
-      {
-        packages.default = pkgs.voicegpt; # FIXME: "portaudio.h: No such file or directory"
+        }
+      );
 
-        devShells = {
-          default = pkgs.mkShell {
-            # inputsFrom = [ pkgs.voicegpt ]; # This is what we actually want
+      packages = forAllSystems (
+        system:
+        let
+          pkgs = nixpkgs.legacyPackages.${system};
+        in
+        {
+          default = pkgs.callPackage ./package.nix { };
+        }
+      );
 
-            # Yet, we have to do this since the voicegpt package does not build:
-            buildInputs = with pkgs; [
-              alsa-utils
-              espeak
-              portaudio
-              python312
-              python312Packages.openai
-              python312Packages.pyaudio
-              python312Packages.python-dotenv
-              python312Packages.pyttsx3
-              python312Packages.speechrecognition
+      devShells = forAllSystems (
+        system:
+        let
+          pkgs = nixpkgs.legacyPackages.${system};
+        in
+        {
+          default = import ./shell.nix { inherit pkgs; };
+
+          venv = pkgs.mkShell {
+            buildInputs = [
+              pkgs.python3
+              pkgs.python3Packages.pip
+              pkgs.alsa-utils
+              pkgs.espeak
+              pkgs.portaudio
             ];
+
             shellHook = ''
               export PATH="${pkgs.espeak}/bin:$PATH"
               export LD_LIBRARY_PATH="${pkgs.espeak}/lib:$LD_LIBRARY_PATH"
               export ESPEAK_DATA_PATH="${pkgs.espeak}/share/espeak-ng-data"
+
+              python -m venv .venv
+              source .venv/bin/activate
+              pip install .
             '';
           };
-
-          poetry = pkgs.mkShell {
-            packages = [ pkgs.poetry ];
-          };
-        };
-
-        legacyPackages = pkgs;
-      }
-    );
+        }
+      );
+    };
 }

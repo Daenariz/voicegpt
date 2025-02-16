@@ -5,16 +5,22 @@ import random
 
 from dotenv import load_dotenv
 import os
-from utils import load_phrases, check_phrase
 
+def load_phrases(file_path):
+    with open(file_path, 'r', encoding='utf-8') as file:
+        phrases = file.readlines()
+    phrases = [phrase.strip() for phrase in phrases]
+    return phrases
 
+def check_phrase(input_string, phrases):
+    return any(phrase in input_string for phrase in phrases)
 
 # adjust the file path to be relative to the main.py file 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 os.chdir(script_dir) 
 
 # file paths for language switching
-data_dir = '../data'
+data_dir = '../../data'
 language = 'en'   # use de for german, en for english and ja for japanese
 wake_words_path = os.path.join(data_dir, language, 'wake_words.txt')
 welcome_phrases_path = os.path.join(data_dir, language, 'welcome_phrases.txt')
